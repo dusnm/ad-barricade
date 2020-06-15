@@ -2,8 +2,8 @@
 ## Ad blocking bash shell script inspired by AdAway
 
 ### Table of Contents
-[Warning](#warning)
-[Usage](#usage)
+* [Warning](#warning)
+* [Usage](#usage)
 
 ### Warning
 This script was written for fun and it hasn't been tested for edge cases, use at your own risk.
