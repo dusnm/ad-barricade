@@ -24,3 +24,8 @@ Usage: adbr [-b] [-r] [-v] [-h]
 ```
 You need to populate the URL file with ad server URLs.
 A good place to start is [Steven Black's hosts](https://github.com/StevenBlack/hosts).
+
+Afterwards run the script without arguments to generate and install the hosts file
+```
+./adbr
+```
