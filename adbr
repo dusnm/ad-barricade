@@ -22,7 +22,7 @@ compile_hosts_file_from_urls() {
     # and save each result in a uniqely named temporary file
     while read -r url;
     do
-        curl -s $url | sed "s/^[ \t]*//;s/[ \t]*$//" | grep -E "^(0|127)" >> "hosts-part-$(cat /proc/sys/kernel/random/uuid)"
+        curl -s $url | sed "s/^[ \t]*//;s/[ \t]*$//;s/127.0.0.1/0.0.0.0/g" | grep -P "^0.0.0.0" >> "hosts-part-$(cat /proc/sys/kernel/random/uuid)"
     done < $url_file
 
     # Concatenate the original hosts file with the temporary files
