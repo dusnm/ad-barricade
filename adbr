@@ -1,73 +1,91 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright (C) 2020 Dusan Mitrovic <dusan@dusanmitrovic.xyz>
 # Licensed under the terms of the GNU GPL v3 only
 #
-# Ad blocking bash shell script inspired by AdAway
-config_directory="$HOME/.config/ad-barricade"
-url_file="$config_directory/urls"
-hosts_file="/etc/hosts"
-compiled_hosts="$config_directory/hosts"
+# Ad blocking shell script inspired by AdAway
 
-create_config_directory() {
-    [ ! -d $config_directory ] && mkdir -p $config_directory
+CONFIG_DIRECTORY="$HOME/.config/ad-barricade"
+URL_FILE="$CONFIG_DIRECTORY/urls"
+HOSTS_FILE="/etc/hosts"
+COMPILED_HOSTS="$CONFIG_DIRECTORY/hosts"
+
+create_CONFIG_DIRECTORY() {
+    [ ! -d "$CONFIG_DIRECTORY" ] && mkdir -p "$CONFIG_DIRECTORY"
 }
 
-compile_hosts_file_from_urls() {
-    [ ! -f $url_file ] && echo "URL file not found in $url_file !" && exit 1
-    [ ! -s $url_file ] && echo "URL file is empty, populate the file with ad server URLs!" && exit 1
-    
+compile_HOSTS_FILE_from_urls() {
+    # Some basic error handling
+    [ ! -f "$URL_FILE" ] && echo "URL file not found in $URL_FILE !" && exit 1
+    [ ! -s "$URL_FILE" ] && echo "URL file is empty, populate the file with ad server URLs!" && exit 1
+
     # Read the urls line by line and CURL the results,
     # remove heading and trailing whitespace
     # and save each result in a uniqely named temporary file
     while read -r url;
     do
-        curl -s $url | sed "s/^[ \t]*//;s/[ \t]*$//;s/127.0.0.1/0.0.0.0/g" | grep -P "^0.0.0.0" >> "hosts-part-$(cat /proc/sys/kernel/random/uuid)"
-    done < $url_file
+        curl -s "$url" | sed "s/^[ \t]*//;s/[ \t]*$//;s/127.0.0.1/0.0.0.0/g" | grep -P "^0.0.0.0" >> "hosts-part-$(cat /proc/sys/kernel/random/uuid)"
+    done < "$URL_FILE"
 
     # Concatenate the original hosts file with the temporary files
     # and sort them, then filter out the duplicate lines,
     # save the compiled hosts file and remove the temporary files
-    sort $hosts_file hosts-part-* | uniq > $compiled_hosts
+    sort "$HOSTS_FILE" hosts-part-* | uniq > "$COMPILED_HOSTS"
     rm hosts-part-*
 }
 
-install_compiled_hosts_file() {
-    sudo cp $compiled_hosts $hosts_file
+install_compiled_HOSTS_FILE() {
+    sudo cp "$COMPILED_HOSTS" "$HOSTS_FILE"
 }
 
-backup_hosts_file() {
-    cp $hosts_file "$config_directory/hosts_backup"
+backup_HOSTS_FILE() {
+    cp "$HOSTS_FILE" "$CONFIG_DIRECTORY/hosts_backup"
 }
 
-restore_hosts_file() {
-    sudo cp "$config_directory/hosts_backup" $hosts_file
+restore_HOSTS_FILE() {
+    sudo cp "$CONFIG_DIRECTORY/hosts_backup" $HOSTS_FILE
 }
 
 print_version() {
-    echo ""
-    echo "Ad Barricade v1.0.0"
-    echo "Copyright (C) 2020 Dusan Mitrovic <dusan@dusanmitrovic.xyz>"
-    echo "Licensed under the terms of the GNU GPL v3 only"
+    version_string="
+Ad Barricade v1.0.1
+Copyright (C) 2020 Dusan Mitrovic <dusan@dusanmitrovic.xyz>
+Licensed under the terms of the GNU GPL v3 only
+"
+    echo "$version_string"
 }
 
 print_help() {
-    echo ""
-    echo "Ad blocking bash shell script inspired by AdAway"
-    echo ""
-    echo "Usage: adbr [-b] [-r] [-v] [-h]"
-    echo "-b    Backup the current hosts file manually"
-    echo "-r    Restore the original hosts file from the backup"
-    echo "-v    Print versioning information"
-    echo "-h    Print this help message"
+    usage="
+Ad blocker inspired by AdAway
+
+Usage: $(basename $0) [OPTIONS]
+
+Options:
+  -b    Backup the current hosts file manually
+  -r    Restore the original hosts file from the backup
+  -v    Print the version string of this script
+  -h    Print this help message
+"
+    echo "$usage"
+}
+
+main() {
+    create_CONFIG_DIRECTORY
+
+    # The first time the script is ran it will automatically generate a backup
+    [ ! -f "$CONFIG_DIRECTORY/hosts_backup" ] && backup_HOSTS_FILE
+
+    compile_HOSTS_FILE_from_urls
+    install_compiled_HOSTS_FILE
 }
 
 # Parse the command line options
 while getopts "brvh" option;
 do
     case $option in
-        b) backup_hosts_file;;
-        r) restore_hosts_file;;
+        b) backup_HOSTS_FILE;;
+        r) restore_HOSTS_FILE;;
         v) print_version;;
         h) print_help;;
         \?) print_help;;
@@ -76,11 +94,5 @@ done
 
 # If there are no command line options run the main procedure
 if [ -z "$@" ]; then
-    create_config_directory
-
-    # The first time the script is ran it will automatically generate a backup
-    [ ! -f "$config_directory/hosts_backup" ] && backup_hosts_file
-
-    compile_hosts_file_from_urls
-    install_compiled_hosts_file
+    main
 fi
